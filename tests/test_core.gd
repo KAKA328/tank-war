@@ -10,6 +10,7 @@ const MainMenuScene = preload("res://scenes/ui/main_menu.tscn")
 const MainMenuScript = preload("res://src/ui/main_menu.gd")
 const TankScene = preload("res://scenes/world/tank.tscn")
 const ArenaScene = preload("res://scenes/world/arena.tscn")
+const MatchRules = preload("res://src/match/match_rules.gd")
 
 var check_count := 0
 var _failures := 0
@@ -28,6 +29,7 @@ func run_all() -> int:
 	_test_main_menu_exposes_connection_controls()
 	_test_main_menu_opens_arena_after_connection()
 	_test_arena_exposes_tank_and_status_nodes()
+	_test_match_rules_score_respawn_and_finish()
 	return _failures
 
 
@@ -137,6 +139,10 @@ func _test_tank_health_is_server_mutated() -> void:
 	_assert_false(tank.destroyed, "nonlethal damage keeps tank alive")
 	_assert_equal(tank.apply_damage(100), 0, "lethal damage clamps health at zero")
 	_assert_true(tank.destroyed, "lethal damage marks tank destroyed")
+	tank.respawn(Vector2(123.0, 456.0))
+	_assert_equal(tank.global_position, Vector2(123.0, 456.0), "respawn moves tank to its spawn point")
+	_assert_equal(tank.health, tank.max_health, "respawn restores full health")
+	_assert_false(tank.destroyed, "respawn clears destroyed state")
 	tank.free()
 
 
@@ -157,6 +163,8 @@ func _test_arena_exposes_tank_and_status_nodes() -> void:
 	_assert_true(arena.get_script() != null and arena.get_script().can_instantiate(), "arena script compiles and can instantiate")
 	_assert_true(arena.get_node_or_null("Tank") != null, "arena has a local tank node")
 	_assert_true(arena.get_node_or_null("Hud/Status") != null, "arena has a status label")
+	_assert_true(arena.get_node_or_null("Hud/Score") != null, "arena has a score label")
+	_assert_true(arena.get_node_or_null("Hud/Restart") != null, "arena has a restart button")
 	arena.free()
 
 
@@ -173,6 +181,26 @@ func _test_main_menu_opens_arena_after_connection() -> void:
 		MainMenuScript.should_open_arena(NetworkSessionClass.State.OFFLINE),
 		"offline state stays in the menu"
 	)
+
+
+func _test_match_rules_score_respawn_and_finish() -> void:
+	var rules := MatchRules.new(2, 3.0)
+	_assert_equal(rules.state, MatchRules.State.WAITING, "match starts waiting")
+	rules.start_match([1, 2])
+	_assert_equal(rules.state, MatchRules.State.PLAYING, "match starts playing")
+	_assert_equal(rules.score_for(1), 0, "players start with zero score")
+	var first_kill := rules.record_kill(1, 2)
+	_assert_true(first_kill.accepted, "server accepts a kill during play")
+	_assert_equal(rules.score_for(1), 1, "killer receives one point")
+	_assert_true(rules.is_respawning(2), "victim enters respawn state")
+	_assert_false(rules.record_kill(1, 2).accepted, "duplicate kill during respawn is rejected")
+	_assert_equal(rules.advance(2.9).size(), 0, "respawn waits for the configured delay")
+	_assert_equal(rules.advance(0.1), [2], "victim becomes ready after the delay")
+	_assert_false(rules.is_respawning(2), "victim leaves respawn state")
+	rules.record_kill(1, 2)
+	_assert_equal(rules.state, MatchRules.State.MATCH_OVER, "target score ends the match")
+	_assert_equal(rules.winner_id, 1, "killer becomes the winner")
+	_assert_false(rules.record_kill(2, 1).accepted, "match over rejects further kills")
 
 
 func _assert_equal(actual: Variant, expected: Variant, label: String) -> void:

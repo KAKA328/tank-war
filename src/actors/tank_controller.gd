@@ -69,6 +69,16 @@ func apply_damage(amount: int) -> int:
 	return health
 
 
+func respawn(spawn_position: Vector2) -> void:
+	global_position = spawn_position
+	velocity = Vector2.ZERO
+	health = max_health
+	destroyed = false
+	_cooldown_left = 0.0
+	health_changed.emit(health, max_health)
+	queue_redraw()
+
+
 func get_aim() -> Vector2:
 	return _aim
 

@@ -3,7 +3,7 @@ extends Area2D
 
 const TankControllerType = preload("res://src/actors/tank_controller.gd")
 
-signal hit_target(target: Node2D)
+signal hit_target(target: Node2D, attacker_id: int)
 
 @export var speed := 420.0
 @export var lifetime := 3.0
@@ -43,5 +43,5 @@ func _on_body_entered(body: Node2D) -> void:
 	var tank := body as TankControllerType
 	if tank == null or tank.tank_id == owner_id or tank.destroyed:
 		return
-	hit_target.emit(tank)
+	hit_target.emit(tank, owner_id)
 	queue_free()

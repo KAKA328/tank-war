@@ -8,9 +8,42 @@
 
 **Tech Stack:** Godot 4.7, typed GDScript, ENet/UDP, dependency-free headless GDScript tests.
 
-**Status:** Implemented and verified on 2026-09-18.
+**Status:** Framework and 1v1 match loop implemented; final verification completed on 2026-09-19.
 
-The follow-up gameplay slice is also implemented: bounded tank commands, arena integration, tank and projectile scenes, menu-to-arena transition, server-side input routing, snapshots, player spawning, and host-side damage. The current verification suite reports 43 passing checks.
+The follow-up gameplay slice is also implemented: bounded tank commands, arena integration, tank and projectile scenes, menu-to-arena transition, server-side input routing, snapshots, player spawning, host-side damage, respawn, score, match-over and restart. The current verification suite reports 61 passing checks.
+
+## 1v1 Match Loop Addendum
+
+**Goal:** Complete a host-authoritative 1v1 match with configurable respawn delay and winning score.
+
+**Architecture:** `MatchRules` is a pure state machine that accepts server-side kill events and time advancement. The arena owns one instance, applies respawn commands to tanks, broadcasts match snapshots, and exposes a HUD. Clients never mutate health, score, respawn, or winner state.
+
+**Files:**
+- Create: `src/match/match_rules.gd`
+- Modify: `scenes/world/arena.tscn`
+- Create: `tests/network_host_smoke.gd`
+- Create: `tests/network_client_smoke.gd`
+- Modify: `src/world/arena.gd`
+- Modify: `src/actors/tank_controller.gd`
+- Modify: `tests/test_core.gd`
+
+### Task 6: Match rules through TDD
+
+- [x] Write tests for start state, one-time scoring, respawn countdown, configurable target score, and match-over rejection.
+- [x] Implement `MatchRules` as a dependency-free state machine.
+- [x] Run the headless suite and keep all existing checks green (61 checks).
+
+### Task 7: Server integration
+
+- [x] Connect tank destruction to the server-owned match state.
+- [x] Apply configurable respawn positions and countdown through the host.
+- [x] Broadcast match snapshots to clients and reject client-side match mutations.
+
+### Task 8: HUD and two-process verification
+
+- [x] Add score, health, respawn countdown, and match-over controls.
+- [x] Run host and client Godot processes on `127.0.0.1:7010`.
+- [x] Verify movement, firing, damage, death, respawn, scoring, match-over, and restart.
 
 ---
 
@@ -24,8 +57,12 @@ The follow-up gameplay slice is also implemented: bounded tank commands, arena i
 - `src/ai/threat_evaluator.gd`: calculates time until a moving projectile reaches a tank danger radius.
 - `src/ui/main_menu.gd`: adapts buttons and text fields to `NetworkSession` calls.
 - `scenes/ui/main_menu.tscn`: runnable connection menu.
+- `src/match/match_rules.gd`: dependency-free score, respawn, and match-over state machine.
+- `src/world/arena.gd`: host-authoritative simulation, match snapshots, and restart RPC.
+- `scenes/world/arena.tscn`: match HUD and restart controls.
 - `tests/run_tests.gd`: minimal headless test runner.
-- `tests/test_core.gd`: behavior tests for parsing, reflection, threat timing, and session defaults.
+- `tests/test_core.gd`: behavior tests for parsing, reflection, threat timing, session defaults, tank respawn, HUD nodes, and match rules.
+- `tests/network_host_smoke.gd` / `tests/network_client_smoke.gd`: two-process connection and full-match acceptance tests.
 
 ### Task 1: Project configuration and headless test harness
 

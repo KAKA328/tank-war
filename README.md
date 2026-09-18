@@ -1,18 +1,19 @@
 # Tank War
 
-Godot 4.7 的 2D 坦克对战项目框架。当前版本建立了局域网和 UDP 内网穿透共用的连接入口，以及可测试的弹道反射和 AI 来弹威胁计算。
+Godot 4.7 的 2D 坦克对战原型，支持同一校园网内的 1v1 联机，也可以把同一 UDP 端口交给 Sakura FRP 做内网穿透。
 
 ## 当前能力
 
 - 使用 ENet/UDP 创建或加入房间。
 - 地址支持 `IP:端口`、`域名:端口`，不写端口时使用 `7000`。
-- 主机作为权威服务器，后续由主机处理移动、开火、命中、AI 和胜负。
+- 主机作为权威服务器，处理移动、开火、命中、生命值、重生、计分和胜负；客户端只上传输入命令。
 - 反射速度计算可直接用于墙面弹射。
 - AI 威胁计算可以判断来弹首次进入坦克危险半径的时间。
 - 竞技场场景包含可移动坦克、鼠标瞄准、开火信号和自动移动的子弹实体。
 - 创建房间或成功加入后自动进入竞技场，返回菜单会关闭当前会话。
 - 客户端通过输入 RPC 提交命令，主机广播坦克位置、瞄准和生命值快照。
 - 新玩家由主机分配出生点；子弹由主机生成并负责命中扣血。
+- 服务器权威的 1v1 比赛闭环：击杀后 3 秒重生，先得 5 分获胜，支持比分、生命、重生倒计时、比赛结束提示和重新开始。
 - 自带无第三方依赖的 headless 测试入口。
 
 ## 启动
@@ -47,10 +48,18 @@ godot --headless --path . --editor --quit
 godot --headless --path . --quit-after 2
 ```
 
+双进程联机和完整比赛冒烟测试（会在本机 UDP 7010 端口启动主机与客户端，约 30 秒）：
+
+```powershell
+$godot = (Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Filter 'Godot_v4.7.2-stable_win64_console.exe' -Recurse | Select-Object -First 1 -ExpandProperty FullName)
+Start-Process $godot -ArgumentList '--headless','--path','.', '--script','res://tests/network_host_smoke.gd'
+Start-Process $godot -ArgumentList '--headless','--path','.', '--script','res://tests/network_client_smoke.gd'
+```
+
+冒烟测试会验证两进程连接、双方移动、客户端输入 RPC、开火、扣血、死亡、重生、计分、5 分结束，以及客户端请求重新开始。
+
 ## 当前限制
 
-当前已经完成多玩家出生点、输入同步、子弹同步和主机扣血；还没有完成重生、胜负流程、客户端预测和延迟补偿。AI 决策仍应只在主机执行，客户端只接收结果。
+当前是确定性原型，尚未加入客户端预测、延迟补偿、道具、坦克点数配置和草丛等特殊地形。AI 决策仍应只在主机执行，客户端只接收结果。
 
-## 下一里程碑
-
-加入服务器权威的玩家生成、输入 RPC、子弹碰撞结算、生命值和胜负状态。
+重生时间和胜利分数集中在 `src/core/game_config.gd` 的 `RESPAWN_DELAY` 与 `TARGET_SCORE`，修改后重新启动双方即可生效。

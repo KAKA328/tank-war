@@ -17,6 +17,7 @@
 - `src/ai/`: perception and decision calculations; server-only at runtime.
 - `src/actors/`: network-aware tank and projectile scene scripts.
 - `src/world/`: authoritative arena orchestration and spawn rules.
+- `src/match/`: pure match state, scoring, respawn, and round rules.
 - `tests/`: custom dependency-free headless test runner and test cases.
 - `docs/superpowers/plans/`: implementation plans.
 
