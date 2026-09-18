@@ -1,0 +1,43 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://src/world/arena.gd" id="1_arena"]
+[ext_resource type="PackedScene" path="res://scenes/world/tank.tscn" id="2_tank"]
+
+[sub_resource type="StyleBoxFlat" id="StyleHud"]
+bg_color = Color(0.04, 0.08, 0.1, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2, 0.72, 0.55, 0.8)
+
+[node name="Arena" type="Node2D"]
+script = ExtResource("1_arena")
+
+[node name="Tank" parent="." instance=ExtResource("2_tank")]
+position = Vector2(640, 360)
+
+[node name="Hud" type="PanelContainer" parent="."]
+offset_left = 24.0
+offset_top = 18.0
+offset_right = 540.0
+offset_bottom = 78.0
+theme_override_styles/panel = SubResource("StyleHud")
+
+[node name="Status" type="Label" parent="Hud"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.74, 0.96, 0.85, 1)
+theme_override_font_sizes/font_size = 16
+text = "准备进入竞技场"
+vertical_alignment = 1
+horizontal_alignment = 1
+
+[node name="Back" type="Button" parent="Hud"]
+layout_mode = 2
+size_flags_horizontal = 0
+custom_minimum_size = Vector2(90, 0)
+text = "返回菜单"
