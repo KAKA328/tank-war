@@ -19,6 +19,13 @@ func _ready() -> void:
 	join_button.pressed.connect(_on_join_pressed)
 	leave_button.pressed.connect(_on_leave_pressed)
 	network_session.state_changed.connect(_on_session_state_changed)
+	if OS.has_feature("web"):
+		port_edit.visible = false
+		host_button.visible = false
+		$Panel/Margin/VBox/HostHint.text = "浏览器模式"
+		address_edit.text = "wss://127.0.0.1:7001"
+		address_edit.placeholder_text = "wss://服务器域名/路径"
+		$Panel/Margin/VBox/Subtitle.text = "浏览器 WebSocket 联机"
 	_on_session_state_changed(network_session.state, "未连接")
 
 

@@ -10,6 +10,15 @@ static func parse(text: String, default_port: int = Config.DEFAULT_PORT) -> Dict
 		return _error("服务器地址不能为空")
 	if default_port < 1 or default_port > 65535:
 		return _error("默认端口必须在 1 到 65535 之间")
+	var scheme_separator := value.find("://")
+	if scheme_separator > 0:
+		var scheme := value.left(scheme_separator).to_lower()
+		if scheme != "ws" and scheme != "wss":
+			return _error("只支持 ws:// 或 wss:// 地址")
+		var url_host := value.substr(scheme_separator + 3)
+		if url_host.is_empty():
+			return _error("服务器地址不能为空")
+		return {"ok": true, "scheme": scheme, "url": value}
 
 	var host := value
 	var port := default_port

@@ -14,6 +14,7 @@ Godot 4.7 的 2D 坦克对战原型，支持同一校园网内的 1v1 联机，�
 - 客户端通过输入 RPC 提交命令，主机广播坦克位置、瞄准和生命值快照。
 - 新玩家由主机分配出生点；子弹由主机生成并负责命中扣血。
 - 服务器权威的 1v1 比赛闭环：击杀后 3 秒重生，先得 5 分获胜，支持比分、生命、重生倒计时、比赛结束提示和重新开始。
+- 网络层同时支持原生 ENet/UDP 和 WebSocket；浏览器客户端只连接外部 WebSocket 权威服务器。
 - 自带无第三方依赖的 headless 测试入口。
 
 ## 启动
@@ -40,12 +41,27 @@ PowerShell 启动方式：
 
 使用 Sakura FRP 时，需要建立 UDP 隧道，然后填写 Sakura 分配的服务器地址和远程端口。
 
+## 浏览器版本
+
+项目已经包含 Godot Web 导出预设和 GitHub Actions Pages 工作流。推送到 `main` 后，Actions 会导出 `builds/web` 并发布静态页面；首次启用时需要在仓库 Settings → Pages → Build and deployment 中选择 GitHub Actions。
+
+浏览器页面只负责运行客户端，不能在 GitHub Pages 上启动主机权威服务器。要让朋友通过浏览器联机，还需要在云服务器或可公开访问的机器上运行：
+
+```powershell
+godot --headless --path . --scene res://server/server.tscn -- --port=7001
+```
+
+浏览器菜单中填写服务器的 `wss://域名/路径`。本地验证可以使用 `ws://127.0.0.1:7011`；公网 HTTPS 页面必须使用 `wss://`，不能把 `ws://` 直接混入 HTTPS 页面。
+
+Web 导出要求浏览器支持 WebAssembly 和 WebGL 2，当前项目使用 Compatibility 渲染模式。导出文件不提交到 Git，CI 会在发布时重新生成。
+
 ## 验证
 
 ```powershell
 godot --headless --path . --script res://tests/run_tests.gd
 godot --headless --path . --editor --quit
 godot --headless --path . --quit-after 2
+godot --headless --path . --export-release Web builds/web/index.html
 ```
 
 双进程联机和完整比赛冒烟测试（会在本机 UDP 7010 端口启动主机与客户端，约 30 秒）：
@@ -57,6 +73,13 @@ Start-Process $godot -ArgumentList '--headless','--path','.', '--script','res://
 ```
 
 冒烟测试会验证两进程连接、双方移动、客户端输入 RPC、开火、扣血、死亡、重生、计分、5 分结束，以及客户端请求重新开始。
+
+WebSocket 连接冒烟测试：
+
+```powershell
+godot --headless --path . --script res://tests/websocket_smoke.gd -- --role=host
+godot --headless --path . --script res://tests/websocket_smoke.gd -- --role=client
+```
 
 ## 当前限制
 

@@ -10,6 +10,7 @@ const MainMenuScene = preload("res://scenes/ui/main_menu.tscn")
 const MainMenuScript = preload("res://src/ui/main_menu.gd")
 const TankScene = preload("res://scenes/world/tank.tscn")
 const ArenaScene = preload("res://scenes/world/arena.tscn")
+const ServerScene = preload("res://server/server.tscn")
 const MatchRules = preload("res://src/match/match_rules.gd")
 
 var check_count := 0
@@ -19,6 +20,8 @@ var _failures := 0
 func run_all() -> int:
 	_test_endpoint_uses_default_port()
 	_test_endpoint_accepts_explicit_port()
+	_test_endpoint_accepts_websocket_urls()
+	_test_transport_selection()
 	_test_endpoint_rejects_invalid_values()
 	_test_session_starts_offline_and_rejects_invalid_input()
 	_test_reflection_uses_surface_normal()
@@ -29,6 +32,7 @@ func run_all() -> int:
 	_test_main_menu_exposes_connection_controls()
 	_test_main_menu_opens_arena_after_connection()
 	_test_arena_exposes_tank_and_status_nodes()
+	_test_websocket_server_scene_exposes_script()
 	_test_match_rules_score_respawn_and_finish()
 	return _failures
 
@@ -47,6 +51,20 @@ func _test_endpoint_accepts_explicit_port() -> void:
 		{"ok": true, "host": "example.net", "port": 8123},
 		"address accepts an explicit port and surrounding spaces"
 	)
+
+
+func _test_endpoint_accepts_websocket_urls() -> void:
+	var endpoint := NetworkEndpoint.parse("wss://game.example.com/match")
+	_assert_true(endpoint.get("ok", false), "WebSocket URL is accepted")
+	_assert_equal(endpoint.get("scheme", ""), "wss", "WebSocket scheme is preserved")
+	_assert_equal(endpoint.get("url", ""), "wss://game.example.com/match", "WebSocket URL is preserved")
+
+
+func _test_transport_selection() -> void:
+	var websocket_endpoint := NetworkEndpoint.parse("wss://game.example.com/match")
+	var native_endpoint := NetworkEndpoint.parse("192.168.1.8:7000")
+	_assert_equal(NetworkSessionClass.transport_for_endpoint(websocket_endpoint), "websocket", "WebSocket endpoint selects WebSocket transport")
+	_assert_equal(NetworkSessionClass.transport_for_endpoint(native_endpoint), "enet", "native endpoint selects ENet transport")
 
 
 func _test_endpoint_rejects_invalid_values() -> void:
@@ -166,6 +184,12 @@ func _test_arena_exposes_tank_and_status_nodes() -> void:
 	_assert_true(arena.get_node_or_null("Hud/Score") != null, "arena has a score label")
 	_assert_true(arena.get_node_or_null("Hud/Restart") != null, "arena has a restart button")
 	arena.free()
+
+
+func _test_websocket_server_scene_exposes_script() -> void:
+	var server := ServerScene.instantiate()
+	_assert_true(server.get_script() != null and server.get_script().can_instantiate(), "WebSocket server scene script compiles")
+	server.free()
 
 
 func _test_main_menu_opens_arena_after_connection() -> void:

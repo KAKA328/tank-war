@@ -3,9 +3,10 @@
 ## Runtime
 
 - Target Godot 4.7.x with typed GDScript.
-- Use the built-in ENet multiplayer peer over UDP.
+- Use the built-in ENet multiplayer peer over UDP for native desktop builds.
+- Use `WebSocketMultiplayerPeer` over `wss://` for browser clients; browser builds never host an authoritative server.
 - The host is the authoritative game server and may also be a local player.
-- Keep the first milestone desktop-only: Windows host/client with LAN or UDP tunnel connectivity.
+- Native desktop remains supported through LAN or UDP tunnel connectivity. Web builds use a separate headless WebSocket server.
 
 ## Layout
 
@@ -17,6 +18,7 @@
 - `src/ai/`: perception and decision calculations; server-only at runtime.
 - `src/actors/`: network-aware tank and projectile scene scripts.
 - `src/world/`: authoritative arena orchestration and spawn rules.
+- `server/`: headless authoritative server entry points for browser transport.
 - `src/match/`: pure match state, scoring, respawn, and round rules.
 - `tests/`: custom dependency-free headless test runner and test cases.
 - `docs/superpowers/plans/`: implementation plans.
@@ -34,6 +36,7 @@
 - Use explicit return types and exported configuration where Godot supports them.
 - Signals describe events; direct node references handle local ownership.
 - No engine add-ons are required for the framework milestone.
+- Exported web files belong under `builds/web/` locally and under the Pages artifact in CI; never commit generated exports.
 
 ## Verification
 

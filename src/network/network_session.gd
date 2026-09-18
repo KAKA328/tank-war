@@ -20,6 +20,10 @@ var bound_port := 0
 var last_error := ""
 
 
+static func transport_for_endpoint(endpoint: Dictionary) -> String:
+	return "websocket" if endpoint.get("scheme", "") in ["ws", "wss"] else "enet"
+
+
 func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
@@ -50,14 +54,37 @@ func join_game(endpoint_text: String) -> Error:
 		return _reject(endpoint.get("error", "服务器地址无效"))
 
 	leave_game(false)
-	var peer := ENetMultiplayerPeer.new()
-	var result := peer.create_client(endpoint.host, endpoint.port)
+	var peer: MultiplayerPeer
+	var result: Error
+	if transport_for_endpoint(endpoint) == "websocket":
+		peer = WebSocketMultiplayerPeer.new()
+		result = peer.create_client(endpoint.url)
+	else:
+		peer = ENetMultiplayerPeer.new()
+		result = peer.create_client(endpoint.host, endpoint.port)
 	if result != OK:
 		return _reject("连接初始化失败：%s" % error_string(result), result)
 
 	multiplayer.multiplayer_peer = peer
-	bound_port = endpoint.port
-	_set_state(State.CONNECTING, "正在连接 %s:%d" % [endpoint.host, endpoint.port])
+	bound_port = int(endpoint.get("port", 0))
+	if transport_for_endpoint(endpoint) == "websocket":
+		_set_state(State.CONNECTING, "正在连接 %s" % endpoint.url)
+	else:
+		_set_state(State.CONNECTING, "正在连接 %s:%d" % [endpoint.host, endpoint.port])
+	return OK
+
+
+func host_websocket_game(port: int = Config.DEFAULT_PORT) -> Error:
+	if port < 1 or port > 65535:
+		return _reject("端口必须在 1 到 65535 之间")
+	leave_game(false)
+	var peer := WebSocketMultiplayerPeer.new()
+	var result := peer.create_server(port)
+	if result != OK:
+		return _reject("创建 WebSocket 服务器失败：%s" % error_string(result), result)
+	multiplayer.multiplayer_peer = peer
+	bound_port = port
+	_set_state(State.HOSTING, "已创建 WebSocket 服务器，端口 %d" % port)
 	return OK
 
 
